@@ -1,7 +1,6 @@
 import { Hono } from "hono";
-import auth from "./libs/auth"; // path to your auth file
+import { auth } from "./lib/auth"; // path to your auth file
 import { logger } from "hono/logger";
-import { compress } from "hono/compress";
 
 const port = process.env.PORT || 5000;
 
@@ -10,11 +9,26 @@ const app = new Hono();
 
 // Logger middleware
 app.use(logger());
+app.get("/", (c) => {
+  return c.json({ status: "ok", message: "Server is running" });
+});
 
-// Compress middleware
-app.use(compress({ encoding: "gzip" }));
+// Auth routes
+app.get("/api/auth/*", async (c) => {
+  console.log("Auth request received:", c.req.url);
+  return auth.handler(c.req.raw);
+});
 
-app.all("/api/auth/**", (c) => auth.handler(c.req.raw));
+app.post("/api/auth/*", async (c) => {
+  console.log("Auth POST request received:", c.req.url);
+  return auth.handler(c.req.raw);
+});
+
+// Add a catch-all route for debugging
+app.all("*", (c) => {
+  console.log("Route not found:", c.req.url);
+  return c.json({ error: "Not found" }, 404);
+});
 
 export default {
   port,
